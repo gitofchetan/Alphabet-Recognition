@@ -1,0 +1,119 @@
+/*
+	16x2 lcd display main.c code - no additional header required
+	Last 4 characters in both the rows not getting displayed
+	Pin connection to TIVA
+		Pins ordered left to right when pins are on top of the display
+		GND,VBUS,PA5,PA2,PA3,PA4,PB0:PB7,VBUS/V3P3,GND
+*/
+#ifndef STRING_H
+	#include "string.h"
+#endif
+
+#include <stdbool.h>
+#include <stdint.h>
+#include "inc/hw_memmap.h"
+#include "driverlib/adc.h"
+#include "driverlib/gpio.h"
+#include "driverlib/pin_map.h"
+#include "driverlib/sysctl.h"
+#include "driverlib/uart.h"
+#include "utils/uartstdio.h"
+#include "driverlib/interrupt.h"
+#include "inc/hw_ints.h"
+#include <stdint.h>
+#include <math.h>
+
+
+#include "mylcd.h"
+unsigned char string1[]="DIGIT";
+unsigned char string2[]="RECOGNIZED";
+
+
+void mylcddelay(int n)
+{
+	int i;
+	for(i=0;i<n;i++);
+}
+
+void digitlcdinitgpio()
+{
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOA); //Control signals
+	SysCtlPeripheralEnable(SYSCTL_PERIPH_GPIOB); //Data signals
+	GPIOPinTypeGPIOOutput(GPIO_PORTA_BASE, GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5); // RS,RW,E,CONTRAST GND
+	GPIOPinTypeGPIOOutput(GPIO_PORTB_BASE, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_7);
+}
+
+void digitlcdcommand(unsigned char command)
+{
+	GPIOPinWrite(GPIO_PORTA_BASE,GPIO_PIN_2,0x00);
+	GPIOPinWrite(GPIO_PORTA_BASE,GPIO_PIN_3,0x00);
+	GPIOPinWrite(GPIO_PORTB_BASE,0xFF,command);
+	GPIOPinWrite(GPIO_PORTA_BASE,GPIO_PIN_4,0xFF);
+	mylcddelay(10);
+	GPIOPinWrite(GPIO_PORTA_BASE,GPIO_PIN_4,0x00);
+	mylcddelay(5000);
+}
+
+void digitlcddata(unsigned char data)
+{
+	GPIOPinWrite(GPIO_PORTA_BASE,GPIO_PIN_2,0xFF);
+	GPIOPinWrite(GPIO_PORTA_BASE,GPIO_PIN_3,0x00);
+	GPIOPinWrite(GPIO_PORTB_BASE,0xFF,data);
+	GPIOPinWrite(GPIO_PORTA_BASE,GPIO_PIN_4,0xFF);
+	mylcddelay(10);
+	GPIOPinWrite(GPIO_PORTA_BASE,GPIO_PIN_4,0x00);
+	mylcddelay(5000);
+}
+
+void digitlcdinit()
+{
+	digitlcdinitgpio();
+	digitlcdcommand(0x38);
+	digitlcdcommand(0x38);
+	digitlcdcommand(0x38);
+	digitlcdcommand(0x38);
+	digitlcdcommand(0x0C);
+	digitlcdcommand(0x06);
+	digitlcdcommand(0x01);
+	GPIOPinWrite(GPIO_PORTA_BASE,GPIO_PIN_5,0x00);
+}
+
+void startdigitlcd(void)
+{
+	digitlcdinit();
+	digitlcdcommand(0x85);
+		digitlcddata('D');
+		digitlcddata('I');
+		digitlcddata('G');
+		digitlcddata('I');
+		digitlcddata('T');
+	digitlcdcommand(0x80);
+		digitlcddata(255);
+		digitlcddata(255);
+		digitlcddata(255);
+		digitlcddata(255);
+
+	digitlcdcommand(0x8C);
+			digitlcddata(255);
+			digitlcddata(255);
+			digitlcddata(255);
+			digitlcddata(255);
+
+	digitlcdcommand(0xC0);
+		digitlcddata(255);
+		digitlcddata(255);
+		digitlcddata(255);
+		digitlcddata(255);
+
+	digitlcdcommand(0xCC);
+			digitlcddata(255);
+			digitlcddata(255);
+			digitlcddata(255);
+			digitlcddata(255);
+}
+
+void digitlcddisp(char ch)
+{
+	digitlcdcommand(0xC7);
+	digitlcddata(ch);
+}
